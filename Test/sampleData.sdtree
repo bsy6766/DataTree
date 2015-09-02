@@ -1,0 +1,12 @@
+Tile:     
+	name: "String tile name"
+		assetName: "asset string name"
+	hp: 12
+	height: 1.3
+	visible: true
+	engine:
+		name: "Unity"
+Cover:
+	name:
+		first: "Cover's name"
+version: 1
