@@ -1,4 +1,5 @@
 ﻿using System;
+using UnityEngine;
 using System.Collections.Generic;
 
 public class SimpleDataTree
@@ -8,6 +9,7 @@ public class SimpleDataTree
         // private string key;
         private string value;
         private Dictionary<string, Node> children;
+
         public Node(string value)
         {
             //this.key = key;
@@ -36,9 +38,30 @@ public class SimpleDataTree
         {
             return value;
         }
+
+        public void setValue(string value)
+        {
+            this.value = value;
+        }
+
+        public List<string> getKeySet()
+        {
+            return new List<string>(children.Keys);
+        }
+
+        public bool hasKey(string key)
+        {
+            return children.ContainsKey(key);
+        }
+
+        public int getChildrenSize()
+        {
+            return children.Count;
+        }
     }
 
     private string treeName;
+    private string fileName;
     private Dictionary<string, Node> root = null;
 
     public SimpleDataTree(string treeName, string filePath)
@@ -47,14 +70,21 @@ public class SimpleDataTree
         parse(filePath);
     }
 
+    public void clear()
+    {
+        //release object. bye bye
+        root = null;
+
+        //re-allocate dictionary
+        root = new Dictionary<string, Node>();
+        //and add root
+        root.Add(treeName, new Node(null));
+    }
+
     public bool parse(string filePath)
     {
-        if (root != null)
-            root.Clear();
-
-        root = new Dictionary<string, Node>();
-        root.Add(treeName, new Node(null));
-
+        clear();
+        this.fileName = filePath;
         string data = System.IO.File.ReadAllText(filePath);
 
         if (data.Length <= 0)
@@ -65,8 +95,14 @@ public class SimpleDataTree
 
     private void parseTree(string data)
     {
-        string[] splitRet = data.Split("\r".ToCharArray());
+        string[] splitRet = null;
 
+        #ifdef __APPLE__
+            splitRet = data.Split("\n".ToCharArray());
+        #elif _WIN32
+            splitRet = data.Split("\r".ToCharArray());
+        #endif
+        
         string curPath = "";
         int curDepth = 0;
 
@@ -78,7 +114,7 @@ public class SimpleDataTree
             int depth = getDepth(splitRet[i]);
             splitRet[i] = removeTab(splitRet[i]);
 
-            bool hasKey = doesLineHasKey(splitRet[i]);
+            //          bool hasKey = doesLineHasKey(splitRet[i]);
             bool hasValue = doesLineHasValue(splitRet[i]);
 
             if (curDepth == depth)
@@ -125,9 +161,13 @@ public class SimpleDataTree
             }
 
             if (hasValue)
+            {
                 insertData(curPath, getValue(splitRet[i]), root[treeName]);
+            }
             else
+            {
                 insertData(curPath, null, root[treeName]);
+            }
         }
 
         //what..
@@ -175,7 +215,21 @@ public class SimpleDataTree
         {
             return null;
         }
-        return line.Substring(colonIndex + 2);
+
+        //after ":"
+        string valueStr = line.Substring(colonIndex + 1);
+        //but there can be white space or tab after colon. remove that
+        string chStr = valueStr.Substring(0, 1);
+        int index = 0;
+        //vulnerable to out of bound index
+        while (chStr == " " || chStr == "\t")
+        {
+            if (chStr == " " || chStr == "\t")
+                valueStr = valueStr.Substring(1);
+            chStr = valueStr.Substring(0, 1);
+        }
+
+        return valueStr;
     }
 
     private bool doesLineHasKey(string line)
@@ -288,7 +342,7 @@ public class SimpleDataTree
     public string getString(string path, string value)
     {
         string treeValue = getValueFromPath(path);
-        if (treeValue == null)
+        if (treeValue == null || treeValue == "null")
             if (value == null)
                 return null;
             else
@@ -305,7 +359,7 @@ public class SimpleDataTree
     public int getInt(string path, int value)
     {
         string treeValue = getValueFromPath(path);
-        if (treeValue == null)
+        if (treeValue == null || treeValue == "null")
         {
             if (value == 0)
                 return 0;
@@ -331,7 +385,7 @@ public class SimpleDataTree
     public float getFloat(string path, float value)
     {
         string treeValue = getValueFromPath(path);
-        if (treeValue == null)
+        if (treeValue == null || treeValue == "null")
         {
             if (value == 0)
                 return 0;
@@ -357,7 +411,7 @@ public class SimpleDataTree
     public double getDouble(string path, double value)
     {
         string treeValue = getValueFromPath(path);
-        if (treeValue == null)
+        if (treeValue == null || treeValue == "null")
         {
             if (value == 0)
                 return 0;
@@ -383,7 +437,7 @@ public class SimpleDataTree
     public bool getBoolean(string path, bool value)
     {
         string treeValue = getValueFromPath(path);
-        if (treeValue == null)
+        if (treeValue == null || treeValue == "null")
             if (value == false)
                 return false;
             else
@@ -398,24 +452,173 @@ public class SimpleDataTree
                 return false;
         }
     }
-}
 
-class Program
-{
-    static void Main(string[] args)
+    //Get key set of tree(shallow. return lowest depth node keys)
+    public List<String> getKeySet()
     {
-        SimpleDataTree sdTree = new SimpleDataTree("sample", "sampleData.sdtree");
-        Console.WriteLine();
-        Console.WriteLine("Tile.name = " + sdTree.getString("Tile.name"));
-        Console.WriteLine("Tile.name.assetName = " + sdTree.getString("Tile.name.assetName"));
-        Console.WriteLine("Tile.hp = " + sdTree.getInt("Tile.hp"));
-        Console.WriteLine("Tile.height = " + sdTree.getFloat("Tile.height"));
-        Console.WriteLine("Tile.height = " + sdTree.getDouble("Tile.height"));
-        Console.WriteLine("Tile.visible = " + sdTree.getBoolean("Tile.name"));
-        Console.WriteLine("Tile.engine.name = " + sdTree.getString("Tile.engine.name"));
-        Console.WriteLine("Cover.name.first = " + sdTree.getString("Cover.name.first"));
-        Console.WriteLine("version = " + sdTree.getString("version"));
-        Console.WriteLine();
-        Console.WriteLine("DONE!");
+        return this.root[this.treeName].getKeySet();
+    }
+
+    public bool hasKey(string path)
+    {
+        string[] pathSplit = path.Split('.');
+
+        int index = 0;
+        Node root = this.root[treeName];
+        while(index < pathSplit.Length)
+        {
+            if (root.hasKey(pathSplit[index]))
+            {
+                root = root.getChild(pathSplit[index]);
+                index++;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    public void setString(string path, string value)
+    {
+        setValue(path, value);
+    }
+
+    public void setInt(string path, int value)
+    {
+        setValue(path, value.ToString());
+    }
+
+    public void setFloat(string path, float value)
+    {
+        setValue(path, value.ToString());
+    }
+
+    public void setDouble(string path, double value)
+    {
+        setValue(path, value.ToString());
+    }
+
+    public void setBool(string path, bool value)
+    {
+        setValue(path, value.ToString());
+    }
+
+    private void setValue(string path, string value)
+    {
+        bool hasPath = hasKey(path);
+        if (hasPath)
+        {
+            string[] pathSplit = path.Split('.');
+
+            int index = 0;
+            Node root = this.root[treeName];
+            while (index < pathSplit.Length)
+            {
+                if (root.hasKey(pathSplit[index]))
+                {
+                    root = root.getChild(pathSplit[index]);
+                    index++;
+                }
+                else
+                {
+                    //error. can't find path
+                    break;
+                }
+            }
+            root.setValue(value);
+        }
+        else
+        {
+            //has no key. insert new.
+            //split key
+            string[] pathSplit = path.Split('.');
+            int index = 0;
+            Node root = this.root[treeName];
+            string curPath = "";
+            while (index < pathSplit.Length)
+            {
+                string curKey = pathSplit[index];
+                if (index == 0)
+                {
+                    curPath = curKey;
+                }
+                else
+                {
+                    curPath += ("." + curKey);
+                }
+
+
+                if (index == pathSplit.Length - 1)
+                {
+                    //last path node. set data
+                    insertData(curPath, value, this.root[treeName]);
+                    index++;
+                }
+                else
+                {
+                    //not last path. check if there is a path already
+                    bool pathCheck = root.hasKey(curKey);
+                    if (pathCheck)
+                    {
+                        root = root.getChild(curKey);
+                        index++;
+                    }
+                    else
+                    {
+                        //create
+                        insertData(curPath, null, this.root[treeName]);
+                        index++;
+                    }
+                }
+            }
+        }
+    }
+
+    private string parseDataToString(Node node, int depth)
+    {
+        string data = "";
+        if(node.getChildrenSize() == 0)
+        {
+            return node.getValue() + "\n";
+        }
+        else
+        {
+            List<string> keySet = node.getKeySet();
+            int count = 0;
+            foreach(string key in keySet)
+            {
+                if(node.getChild(key).getChildrenSize() != 0)
+                {
+                    data += (key + ": \n");
+                    for (int i = 0; i <= depth; i++)
+                    {
+                        data += "\t";
+                    }
+                }
+                else
+                {
+                    data += (key + ": ");
+                }
+                data += parseDataToString(node.getChild(key), depth + 1);
+                if(count < keySet.Count - 1)
+                {
+                    for (int i = 0; i < depth; i++)
+                    {
+                        data += "\t";
+                    }
+                }
+                count++;
+            }
+            return data;
+        }
+    }
+
+    public void writeFile(string filePath)
+    {
+        string data = parseDataToString(root[treeName], 0);
+        System.IO.File.WriteAllText(filePath, data);
     }
 }
