@@ -20,3 +20,7 @@ To query data, you need to know the exact key. Wrong or empty key will return de
 
 ### Comment
 To write a comment in file, use '#' as a comment symbol. All line after '#' character will be ignored. DataTree does not keep track of comment so comments will be removed if you save the file.
+
+## Todo/Idea
+- I used std::unordered_map to store data. Because of this, saved files will possibly have different order compared to original file. This can be easily fixed by using std::vector to keep order.
+- List can be handy to store multiple data in one key.
