@@ -1,0 +1,29 @@
+Key Value
+# Comment in middle must be ignored
+Key1 Value1	# Comment after key-value must be ignored
+	tabKey tabValue
+	tabKey2 whitespaceValue
+ whitespaceKey whitespaceValue
+ whitespaceKey2	tabValue
+ 		doubleTabKey
+ 			one 1
+ 				two 2.0
+ 					three THREE
+ 				four fOUr
+ 						 	 	 test-key This key and value should be fine
+ 	stringKey This is short string
+Key2 Another child after Key1
+bool
+	red true
+	orange false
+	blue yes
+	green no
+	purple y
+	yellow n
+	caseSensitive No
+	caseSensitive2 FalSe
+Key-can-be-very-long-actually Value doesn't need to be one word
+	empty
+pi 3.14
+month 12
+# End of test
