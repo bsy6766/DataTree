@@ -23,6 +23,11 @@ DataTree::~DataTree()
 	this->clear();
 }
 
+DataTree* DataTree::create()
+{
+	return new DataTree(std::string(), std::string());
+}
+
 DataTree* DataTree::create(const std::string& fileName)
 {
 	if (fileName.empty())

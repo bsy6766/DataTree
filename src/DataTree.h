@@ -185,6 +185,12 @@ private:
 	const std::string trim(const std::string& str);
 public:
 	/**
+	*	Creates empty DataTree instance.
+	*	@return Empty DataTree instance.
+	*/
+	static DataTree* create();
+
+	/**
 	*	Creates DataTree instance.
 	*	@param fileName A name of data file to load. Empty string is rejected.
 	*	@param filePath A optional path for the file to read. If path is empty, then it uses default path.
